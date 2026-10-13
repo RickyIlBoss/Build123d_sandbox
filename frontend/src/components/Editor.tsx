@@ -15,18 +15,19 @@ import DownloadIcon from "@mui/icons-material/Download";
 import type { ThemeMode } from "../theme.ts";
 import ThemeToggle from "./ThemeToggle.tsx";
 
-export const defaultCode = `from ocp_vscode import show
-from build123d import *
+export const defaultCode = `from build123d import *
+from ocp_vscode import show
 
-# Create a shape
-b = Box(1,1,1)
-show(b)
+# Modalita Builder Mode: Sketch con Rettangolo ed Estrusione
+with BuildPart() as p:
+    with BuildSketch():
+        Rectangle(50, 30)
+    extrude(amount=20)
 
-# To export, assign your shape to __EXPORT__
-# 1. Run the code
-# 2. Select the format in the dropdown 
-# 3. Click Download
-__EXPORT__ = b`;
+show(p)
+
+# Per esportare (STEP, STL, 3MF, DXF, SVG, BREP):
+__EXPORT__ = p.part`;
 
 function Editor(props: {
     code: string;

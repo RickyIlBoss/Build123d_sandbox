@@ -63,6 +63,58 @@ function MobileLayout(props: MobileLayoutProps) {
     const containerRef = useRef<HTMLDivElement>(null);
     const hasError = Boolean(props.stderr && props.stderr.trim().length > 0);
 
+    // Adaptive viewport height to fit exactly above the virtual keyboard when open
+    const [viewportHeight, setViewportHeight] = useState<number>(() => {
+        return window.visualViewport?.height || window.innerHeight;
+    });
+
+    useEffect(() => {
+        const vv = window.visualViewport;
+        if (!vv) return;
+
+        const handleViewportChange = () => {
+            setViewportHeight(vv.height);
+            if (window.scrollY !== 0 || window.scrollX !== 0) {
+                window.scrollTo(0, 0);
+            }
+        };
+
+        vv.addEventListener("resize", handleViewportChange);
+        vv.addEventListener("scroll", handleViewportChange);
+        window.addEventListener("scroll", handleViewportChange, { passive: true });
+
+        return () => {
+            vv.removeEventListener("resize", handleViewportChange);
+            vv.removeEventListener("scroll", handleViewportChange);
+            window.removeEventListener("scroll", handleViewportChange);
+        };
+    }, []);
+
+    // Global touchmove listener to prevent rubber-band bounce on non-scrollable areas
+    useEffect(() => {
+        const handleTouchMove = (e: TouchEvent) => {
+            const target = e.target as HTMLElement | null;
+            if (!target) return;
+            // Allow scroll only inside designated scrollable elements
+            if (
+                target.closest(".ios-touch-overlay") ||
+                target.closest(".terminal-output-scrollable") ||
+                target.closest(".tcv_cad_toolbar") ||
+                target.closest("canvas")
+            ) {
+                return;
+            }
+            if (e.cancelable) {
+                e.preventDefault();
+            }
+        };
+
+        document.addEventListener("touchmove", handleTouchMove, { passive: false });
+        return () => {
+            document.removeEventListener("touchmove", handleTouchMove);
+        };
+    }, []);
+
 
 
     const dragStartYRef = useRef(0);
@@ -189,12 +241,14 @@ function MobileLayout(props: MobileLayoutProps) {
                 display: "flex",
                 flexDirection: "column",
                 width: "100%",
-                height: "100%",
-                maxHeight: "100%",
+                height: `${viewportHeight}px`,
+                maxHeight: `${viewportHeight}px`,
                 bgcolor: "background.default",
                 overflow: "hidden",
                 position: "fixed",
-                inset: 0,
+                top: 0,
+                left: 0,
+                right: 0,
             }}
         >
             {/* MAIN CONTENT AREA */}
@@ -379,7 +433,7 @@ function MobileLayout(props: MobileLayoutProps) {
                                 boxShadow: "0 1px 4px rgba(0,0,0,0.04)",
                             }}
                         >
-                            {/* Card Header: </> cube.py                     ▶   ... */}
+                            {/* Card Header: </> model.py                     ▶   ... */}
                             <Box
                                 sx={{
                                     height: "44px",
@@ -391,7 +445,7 @@ function MobileLayout(props: MobileLayoutProps) {
                                     borderBottom: "1px solid",
                                     borderColor: "divider",
                                     bgcolor: "background.paper",
-                                    touchAction: "pan-y",
+                                    touchAction: "none",
                                 }}
                             >
                                 {/* Left: Arrows icon </> and file name */}
@@ -428,7 +482,7 @@ function MobileLayout(props: MobileLayoutProps) {
                                             letterSpacing: "-0.2px",
                                         }}
                                     >
-                                        cube.py
+                                        model.py
                                     </Typography>
                                 </Box>
 

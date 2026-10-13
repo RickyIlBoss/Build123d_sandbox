@@ -96,6 +96,7 @@ function attachOverlay(monaco: AnyEditor, editor: AnyEditor) {
     s.transformOrigin = "0 0";
     s.zIndex = "5";
     s.scrollbarWidth = "none";
+    s.overscrollBehavior = "contain";
 
     const layout = () => {
         const info = editor.getLayoutInfo();

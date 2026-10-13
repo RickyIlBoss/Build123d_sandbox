@@ -51,7 +51,6 @@ function MobileLayout(props: MobileLayoutProps) {
     const [sheetHeightPercentage, setSheetHeightPercentage] = useState(48);
     const [isDragging, setIsDragging] = useState(false);
 
-    const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
 
     // More options menu anchor
     const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null);
@@ -64,96 +63,7 @@ function MobileLayout(props: MobileLayoutProps) {
     const containerRef = useRef<HTMLDivElement>(null);
     const hasError = Boolean(props.stderr && props.stderr.trim().length > 0);
 
-    // Track when virtual keyboard opens/closes to allow natural scroll space at bottom
-    useEffect(() => {
-        const vv = window.visualViewport;
 
-        const isInputElement = (el: Element | null): boolean => {
-            if (!el) return false;
-            const tag = el.tagName.toLowerCase();
-            return (
-                tag === "input" ||
-                tag === "textarea" ||
-                el.classList.contains("inputarea")
-            );
-        };
-
-        const ensureScrollReset = () => {
-            const doReset = () => {
-                if (window.scrollY !== 0) {
-                    window.scrollTo({ top: 0, left: 0, behavior: "instant" });
-                }
-                if (document.documentElement && document.documentElement.scrollTop !== 0) {
-                    document.documentElement.scrollTop = 0;
-                }
-                if (document.body && document.body.scrollTop !== 0) {
-                    document.body.scrollTop = 0;
-                }
-                if (containerRef.current && containerRef.current.scrollTop !== 0) {
-                    containerRef.current.scrollTop = 0;
-                }
-                const rootEl = document.getElementById("root");
-                if (rootEl && rootEl.scrollTop !== 0) {
-                    rootEl.scrollTop = 0;
-                }
-            };
-
-            doReset();
-            requestAnimationFrame(doReset);
-            setTimeout(doReset, 40);
-            setTimeout(doReset, 120);
-            setTimeout(doReset, 250);
-            setTimeout(doReset, 400);
-        };
-
-        let prevKb = false;
-        const updateViewport = () => {
-            if (!vv) return;
-            const currentHeight = vv.height;
-            const isKb = currentHeight < window.innerHeight - 120;
-            setIsKeyboardOpen(isKb);
-            if (prevKb && !isKb) {
-                // Virtual keyboard was just dismissed!
-                if (isInputElement(document.activeElement)) {
-                    (document.activeElement as HTMLElement)?.blur?.();
-                }
-                ensureScrollReset();
-            }
-            prevKb = isKb;
-        };
-
-        if (vv) {
-            vv.addEventListener("resize", updateViewport);
-            vv.addEventListener("scroll", updateViewport);
-        }
-
-        const handleFocusIn = (e: FocusEvent) => {
-            if (isInputElement(e.target as Element)) {
-                setIsKeyboardOpen(true);
-            }
-        };
-
-        const handleFocusOut = () => {
-            setTimeout(() => {
-                if (!isInputElement(document.activeElement)) {
-                    setIsKeyboardOpen(false);
-                    ensureScrollReset();
-                }
-            }, 40);
-        };
-
-        window.addEventListener("focusin", handleFocusIn);
-        window.addEventListener("focusout", handleFocusOut);
-
-        return () => {
-            if (vv) {
-                vv.removeEventListener("resize", updateViewport);
-                vv.removeEventListener("scroll", updateViewport);
-            }
-            window.removeEventListener("focusin", handleFocusIn);
-            window.removeEventListener("focusout", handleFocusOut);
-        };
-    }, []);
 
     const dragStartYRef = useRef(0);
     const dragStartPercentageRef = useRef(sheetHeightPercentage);
@@ -279,11 +189,12 @@ function MobileLayout(props: MobileLayoutProps) {
                 display: "flex",
                 flexDirection: "column",
                 width: "100%",
-                minHeight: "100vh",
+                height: "100%",
+                maxHeight: "100%",
                 bgcolor: "background.default",
-                overflowX: "hidden",
-                touchAction: "pan-y",
-                pb: 0,
+                overflow: "hidden",
+                position: "fixed",
+                inset: 0,
             }}
         >
             {/* MAIN CONTENT AREA */}
@@ -365,6 +276,8 @@ function MobileLayout(props: MobileLayoutProps) {
                         display: "flex",
                         flexDirection: "column",
                         width: "100%",
+                        height: "100%",
+                        overflow: "hidden",
                         position: "relative",
                         userSelect: isDragging ? "none" : "auto",
                     }}
@@ -372,8 +285,8 @@ function MobileLayout(props: MobileLayoutProps) {
                     {/* TOP: 3D CAD VIEWER (OCP) */}
                     <Box
                         sx={{
-                            height: `${100 - sheetHeightPercentage}vh`,
-                            minHeight: "180px",
+                            height: `${100 - sheetHeightPercentage}%`,
+                            minHeight: "140px",
                             width: "100%",
                             position: "relative",
                             overflow: "hidden",
@@ -442,13 +355,13 @@ function MobileLayout(props: MobileLayoutProps) {
                     {/* BOTTOM: THE CODE CARD (Rounded card matching the screenshot) */}
                     <Box
                         sx={{
-                            height: `calc(${sheetHeightPercentage}vh - 26px)`,
-                            minHeight: "220px",
+                            height: `calc(${sheetHeightPercentage}% - 26px)`,
+                            minHeight: "180px",
                             px: "10px",
-                            pb: "calc(52px + env(safe-area-inset-bottom, 20px))",
+                            pb: "calc(10px + env(safe-area-inset-bottom, 8px))",
                             display: "flex",
                             flexDirection: "column",
-                            touchAction: "pan-y",
+                            overflow: "hidden",
                             transition: "none",
                         }}
                     >
@@ -628,6 +541,7 @@ function MobileLayout(props: MobileLayoutProps) {
                                     minHeight: 0,
                                     position: "relative",
                                     overflow: "hidden",
+                                    overscrollBehavior: "contain",
                                 }}
                             >
                                 <MonacoEditor

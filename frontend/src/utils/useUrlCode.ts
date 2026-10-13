@@ -10,11 +10,6 @@ import {
  * @param defaultCode - Default code to use if no code is in URL
  * @returns Object with code state and update function
  */
-function isLegacyDefault(c: string | null | undefined): boolean {
-    if (!c) return false;
-    return c.includes("Box(1,1,1)") || c.includes("Box(1, 1, 1)");
-}
-
 export function useUrlCode(defaultCode: string) {
     const [code, setCode] = useState(() => {
         // Optimistic sync check for legacy 'code' param to avoid flash of content
@@ -23,10 +18,7 @@ export function useUrlCode(defaultCode: string) {
             const url = new URL(window.location.href);
             const legacyCode = url.searchParams.get("code");
             if (legacyCode) {
-                const decoded = decompressCode(legacyCode);
-                if (decoded && !isLegacyDefault(decoded)) {
-                    return decoded;
-                }
+                return decompressCode(legacyCode);
             }
         } catch (e) {
             console.error("Error parsing URL synchronously", e);
@@ -41,11 +33,6 @@ export function useUrlCode(defaultCode: string) {
         const loadCode = async () => {
             const urlCode = await getCodeFromUrl();
             if (active && urlCode) {
-                if (isLegacyDefault(urlCode)) {
-                    setCode(defaultCode);
-                    updateUrlWithCode(defaultCode);
-                    return;
-                }
                 // Only update if different to avoid cursor jumps or re-renders
                 setCode((prev) => (prev !== urlCode ? urlCode : prev));
             }

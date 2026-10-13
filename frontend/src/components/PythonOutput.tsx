@@ -66,7 +66,6 @@ function PythonOutput(props: PythonOutputProps) {
             }}
         >
             <Paper
-                className="terminal-output-scrollable"
                 sx={{
                     flex: 1,
                     minHeight: 0,

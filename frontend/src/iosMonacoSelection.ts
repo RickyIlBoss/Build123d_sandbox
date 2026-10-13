@@ -119,10 +119,9 @@ function attachOverlay(monaco: AnyEditor, editor: AnyEditor) {
         syncScrollFromEditor();
     };
 
-    let isUserTouching = false;
     let scrollFromTextarea = false;
     const syncScrollFromEditor = () => {
-        if (scrollFromTextarea || isUserTouching) return;
+        if (scrollFromTextarea) return;
         ta.scrollTop = editor.getScrollTop() / scale;
         ta.scrollLeft = editor.getScrollLeft() / scale;
     };
@@ -133,92 +132,6 @@ function attachOverlay(monaco: AnyEditor, editor: AnyEditor) {
         editor.setScrollLeft(ta.scrollLeft * scale);
         scrollFromTextarea = false;
     });
-
-    // Boundary overscroll protection for iOS:
-    // Prevents iOS Safari from interpreting a downward swipe at the top of the editor
-    // as the native "pull to dismiss keyboard" gesture, which previously caused the
-    // keyboard to close abruptly and the page to jitter / bounce up and down.
-    let touchStartY = 0;
-    let touchStartX = 0;
-
-    ta.addEventListener("touchstart", (e: TouchEvent) => {
-        isUserTouching = true;
-        if (e.touches.length === 1) {
-            touchStartY = e.touches[0].clientY;
-            touchStartX = e.touches[0].clientX;
-
-            // Nudge scroll position slightly off the 0 boundary so iOS does not trigger pull-to-dismiss
-            if (ta.scrollTop <= 0) {
-                ta.scrollTop = 1;
-            } else if (ta.scrollHeight > ta.clientHeight && ta.scrollTop + ta.clientHeight >= ta.scrollHeight) {
-                ta.scrollTop = Math.max(1, ta.scrollHeight - ta.clientHeight - 1);
-            }
-
-            if (ta.scrollLeft <= 0) {
-                ta.scrollLeft = 1;
-            } else if (ta.scrollWidth > ta.clientWidth && ta.scrollLeft + ta.clientWidth >= ta.scrollWidth) {
-                ta.scrollLeft = Math.max(1, ta.scrollWidth - ta.clientWidth - 1);
-            }
-        }
-    }, { passive: true });
-
-    ta.addEventListener("touchmove", (e: TouchEvent) => {
-        if (e.touches.length === 1) {
-            const currentY = e.touches[0].clientY;
-            const currentX = e.touches[0].clientX;
-            const deltaY = currentY - touchStartY;
-            const deltaX = currentX - touchStartX;
-
-            if (Math.abs(deltaY) >= Math.abs(deltaX)) {
-                // Vertical scrolling
-                // If content fits completely inside the visible area, cancel all vertical dragging
-                if (ta.scrollHeight <= ta.clientHeight + 2) {
-                    if (e.cancelable) e.preventDefault();
-                    return;
-                }
-                // If user is pulling DOWNWARDS at or near the top:
-                // THIS PREVENTS IOS SAFARI FROM DISMISSING THE KEYBOARD!
-                if (deltaY > 0 && ta.scrollTop <= 1) {
-                    if (e.cancelable) e.preventDefault();
-                    return;
-                }
-                // If user is pulling UPWARDS at the bottom boundary: prevent overscroll bounce
-                if (deltaY < 0 && (ta.scrollTop + ta.clientHeight >= ta.scrollHeight - 1)) {
-                    if (e.cancelable) e.preventDefault();
-                    return;
-                }
-            } else {
-                // Horizontal scrolling
-                if (ta.scrollWidth <= ta.clientWidth + 2) {
-                    if (e.cancelable) e.preventDefault();
-                    return;
-                }
-                if (deltaX > 0 && ta.scrollLeft <= 1) {
-                    if (e.cancelable) e.preventDefault();
-                    return;
-                }
-                if (deltaX < 0 && (ta.scrollLeft + ta.clientWidth >= ta.scrollWidth - 1)) {
-                    if (e.cancelable) e.preventDefault();
-                    return;
-                }
-            }
-        }
-    }, { passive: false });
-
-    ta.addEventListener("touchend", () => {
-        isUserTouching = false;
-    }, { passive: true });
-
-    ta.addEventListener("touchcancel", () => {
-        isUserTouching = false;
-    }, { passive: true });
-
-    // Also prevent touchmove on container outside ta (e.g. line numbers gutter) from bubbling and bouncing
-    container.addEventListener("touchmove", (ev: TouchEvent) => {
-        if (ev.target !== ta && ev.cancelable) {
-            ev.preventDefault();
-        }
-    }, { passive: false });
 
     // Push the textarea selection into Monaco before running a Monaco command.
     const selectionToEditor = () => {

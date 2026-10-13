@@ -11,8 +11,6 @@ html, body, #root {
   position: fixed;
   inset: 0;
   overscroll-behavior: none;
-  overscroll-behavior-y: none;
-  overscroll-behavior-x: none;
   -webkit-overflow-scrolling: touch;
 }
 

@@ -163,7 +163,7 @@ function getRenderOptions(theme: "light" | "dark") {
 
 const baseViewerOptions = {
     axes: true,
-    axes0: true,
+    axes0: false,
     blackEdges: false,
     grid: [false, false, false] as [boolean, boolean, boolean],
     collapse: false,
@@ -185,6 +185,29 @@ const baseViewerOptions = {
     clipPlaneHelpers: false,
     clipObjectColors: false,
 };
+
+function applyOrientationMarkerPosition(viewer: any) {
+    if (!viewer) return;
+    try {
+        const marker = viewer._rendered?.orientationMarker || viewer.rendered?.orientationMarker;
+        if (!marker || marker.__positionPatched) return;
+        marker.__positionPatched = true;
+
+        marker.render = function (renderer: any) {
+            if (this.ready && this.scene && this.camera) {
+                // Keep the navigation axes in the bottom-left corner like the original sandbox,
+                // elevated with padding so that all axes (X, Y, Z) and labels are 100% visible
+                // and never clipped by the drag handle or editor when rotating.
+                const offsetX = 12;
+                const offsetY = 32;
+                renderer.setViewport(offsetX, offsetY, this.width, this.height);
+                renderer.render(this.scene, this.camera);
+            }
+        };
+    } catch (e) {
+        console.warn("Could not patch orientation marker position:", e);
+    }
+}
 
 function applyTwoFingerControls(viewer: any) {
     if (!viewer) return;
@@ -409,6 +432,7 @@ function Viewer(props: ViewerProps) {
                     glass,
                 );
                 autoFrameModel(viewerInstanceRef.current, width, height);
+                applyOrientationMarkerPosition(viewerInstanceRef.current);
                 // Keep info open if user had activated it
                 if (wasInfoOpen && displayInstanceRef.current) {
                     displayInstanceRef.current.showInfo(true);
@@ -482,6 +506,7 @@ function Viewer(props: ViewerProps) {
                 const curW = viewerRef.current?.clientWidth || 360;
                 const curH = viewerRef.current?.clientHeight || 400;
                 autoFrameModel(viewerInstanceRef.current, curW, curH);
+                applyOrientationMarkerPosition(viewerInstanceRef.current);
             };
 
             // Prevent glassMode from automatically resetting info to closed if it was opened
@@ -597,6 +622,7 @@ function Viewer(props: ViewerProps) {
                     viewerOptions,
                 );
                 applyTwoFingerControls(viewerInstanceRef.current);
+                applyOrientationMarkerPosition(viewerInstanceRef.current);
                 const curW = viewerRef.current?.clientWidth || 360;
                 const curH = viewerRef.current?.clientHeight || 400;
                 autoFrameModel(viewerInstanceRef.current, curW, curH);

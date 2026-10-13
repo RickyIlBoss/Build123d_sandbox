@@ -96,6 +96,7 @@ function attachOverlay(monaco: AnyEditor, editor: AnyEditor) {
     s.transformOrigin = "0 0";
     s.zIndex = "5";
     s.scrollbarWidth = "none";
+    s.overscrollBehavior = "contain";
 
     const layout = () => {
         const info = editor.getLayoutInfo();
@@ -131,6 +132,26 @@ function attachOverlay(monaco: AnyEditor, editor: AnyEditor) {
         editor.setScrollLeft(ta.scrollLeft * scale);
         scrollFromTextarea = false;
     });
+
+    // Prevent iOS Safari from dismissing virtual keyboard when pulling down at top of editor
+    let touchStartY = 0;
+    ta.addEventListener("touchstart", (e: TouchEvent) => {
+        if (e.touches.length === 1) {
+            touchStartY = e.touches[0].clientY;
+            if (ta.scrollTop <= 0) {
+                ta.scrollTop = 1;
+            }
+        }
+    }, { passive: true });
+
+    ta.addEventListener("touchmove", (e: TouchEvent) => {
+        if (e.touches.length === 1) {
+            const deltaY = e.touches[0].clientY - touchStartY;
+            if (deltaY > 0 && ta.scrollTop <= 1) {
+                if (e.cancelable) e.preventDefault();
+            }
+        }
+    }, { passive: false });
 
     // Push the textarea selection into Monaco before running a Monaco command.
     const selectionToEditor = () => {

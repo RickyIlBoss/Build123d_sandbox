@@ -74,58 +74,44 @@ function MobileLayout(props: MobileLayoutProps) {
             return (
                 tag === "input" ||
                 tag === "textarea" ||
-                el.classList.contains("inputarea")
+                el.classList.contains("inputarea") ||
+                el.classList.contains("ios-touch-overlay")
             );
         };
 
-        const ensureScrollReset = () => {
-            const doReset = () => {
-                if (window.scrollY !== 0) {
-                    window.scrollTo({ top: 0, left: 0, behavior: "instant" });
-                }
-                if (document.documentElement && document.documentElement.scrollTop !== 0) {
-                    document.documentElement.scrollTop = 0;
-                }
-                if (document.body && document.body.scrollTop !== 0) {
-                    document.body.scrollTop = 0;
-                }
-                if (containerRef.current && containerRef.current.scrollTop !== 0) {
-                    containerRef.current.scrollTop = 0;
-                }
-                const rootEl = document.getElementById("root");
-                if (rootEl && rootEl.scrollTop !== 0) {
-                    rootEl.scrollTop = 0;
-                }
-            };
-
-            doReset();
-            requestAnimationFrame(doReset);
-            setTimeout(doReset, 40);
-            setTimeout(doReset, 120);
-            setTimeout(doReset, 250);
-            setTimeout(doReset, 400);
-        };
-
-        let prevKb = false;
         const updateViewport = () => {
             if (!vv) return;
             const currentHeight = vv.height;
             const isKb = currentHeight < window.innerHeight - 120;
             setIsKeyboardOpen(isKb);
-            if (prevKb && !isKb) {
-                // Virtual keyboard was just dismissed!
-                if (isInputElement(document.activeElement)) {
-                    (document.activeElement as HTMLElement)?.blur?.();
-                }
-                ensureScrollReset();
-            }
-            prevKb = isKb;
         };
 
         if (vv) {
             vv.addEventListener("resize", updateViewport);
             vv.addEventListener("scroll", updateViewport);
         }
+
+        // Prevent iOS pull-to-dismiss keyboard when scrolling down to top of page
+        let pageTouchStartY = 0;
+        const handleTouchStart = (e: TouchEvent) => {
+            if (e.touches.length === 1) {
+                pageTouchStartY = e.touches[0].clientY;
+            }
+        };
+
+        const handleTouchMove = (e: TouchEvent) => {
+            if (e.touches.length === 1 && isInputElement(document.activeElement)) {
+                const deltaY = e.touches[0].clientY - pageTouchStartY;
+                if (deltaY > 0 && window.scrollY <= 1) {
+                    if (e.cancelable) {
+                        e.preventDefault();
+                    }
+                }
+            }
+        };
+
+        window.addEventListener("touchstart", handleTouchStart, { passive: true });
+        window.addEventListener("touchmove", handleTouchMove, { passive: false });
 
         const handleFocusIn = (e: FocusEvent) => {
             if (isInputElement(e.target as Element)) {
@@ -137,9 +123,11 @@ function MobileLayout(props: MobileLayoutProps) {
             setTimeout(() => {
                 if (!isInputElement(document.activeElement)) {
                     setIsKeyboardOpen(false);
-                    ensureScrollReset();
+                    if (window.scrollY !== 0) {
+                        window.scrollTo({ top: 0, left: 0, behavior: "smooth" });
+                    }
                 }
-            }, 40);
+            }, 100);
         };
 
         window.addEventListener("focusin", handleFocusIn);
@@ -150,6 +138,8 @@ function MobileLayout(props: MobileLayoutProps) {
                 vv.removeEventListener("resize", updateViewport);
                 vv.removeEventListener("scroll", updateViewport);
             }
+            window.removeEventListener("touchstart", handleTouchStart);
+            window.removeEventListener("touchmove", handleTouchMove);
             window.removeEventListener("focusin", handleFocusIn);
             window.removeEventListener("focusout", handleFocusOut);
         };

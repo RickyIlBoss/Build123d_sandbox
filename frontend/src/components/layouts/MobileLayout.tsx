@@ -129,7 +129,7 @@ function MobileLayout(props: MobileLayoutProps) {
                     overflow: "hidden",
                 }}
             >
-                {mobileView !== "code" && (
+                {mobileView === "output" && (
                     <ThemeToggle
                         mode={props.theme}
                         onToggle={props.onToggleMode}

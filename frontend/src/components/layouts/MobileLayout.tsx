@@ -5,7 +5,6 @@ import BottomNavigation from "@mui/material/BottomNavigation";
 import BottomNavigationAction from "@mui/material/BottomNavigationAction";
 import CodeIcon from "@mui/icons-material/Code";
 import ViewInArIcon from "@mui/icons-material/ViewInAr";
-import ThemeToggle from "../ThemeToggle.tsx";
 import CircularProgress from "@mui/material/CircularProgress";
 import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
@@ -129,13 +128,6 @@ function MobileLayout(props: MobileLayoutProps) {
                     overflow: "hidden",
                 }}
             >
-                {mobileView === "output" && (
-                    <ThemeToggle
-                        mode={props.theme}
-                        onToggle={props.onToggleMode}
-                        floating
-                    />
-                )}
                 <Box
                     sx={{
                         display: mobileView === "viewer" ? "block" : "none",
